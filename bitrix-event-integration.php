@@ -38,99 +38,72 @@ if ( ! class_exists( 'Property_Builder' ) ) {
 
 		public function __construct() {
 			// Define constants
-//			if ( ! defined( 'BUILDER_NAME' ) )
-//				define( 'BUILDER_NAME', 'Builder' );
-//
-//			if ( ! defined( 'BUILDER_DOMAIN' ) )
-//				define( 'BUILDER_DOMAIN', 'builder' );
-
 			define( 'BITRIX_EVENT', '1.0.0' );
 			define( 'BITRIX_EVENT_PLUGIN_DIR', untrailingslashit( plugin_dir_path( __FILE__ ) ) );
 			define( 'BITRIX_EVENT_PLUGIN_URL', untrailingslashit( plugins_url( basename( plugin_dir_path( __FILE__ ) ), basename( __FILE__ ) ) ) );
 
-
 			add_action('init', [$this, 'handler'], PHP_INT_MAX);
-
-
-//			// Include classes
-//			include( BUILDER_PLUGIN_DIR . '/includes/class-builder-general.php' );
-//
-//			// Include functions
-//			include( BUILDER_PLUGIN_DIR . '/functions/builder-properties.php' );
-//
-//			// Include wordpress pluggable
-//			include( BUILDER_PLUGIN_DIR . '/functions/builder-notifications.php' );
-
-
 		}
 
 		public function handler() {
 
-//			$entry = $this->sendApiRequest('crm.' . 'quote' . '.get', false, ['id' => 1174], true);
+			$this->log('testt');
 
-//			var_dump($entry);
+			$this->get_bitrix_data();
 
-//			var_dump($entry);
+
+		}
+
+
+		public function get_bitrix_data() {
 			if (!empty($_POST) || !empty($_POST['auth']) || !empty($_POST['auth']['application_token'])) {
 				if ( $_POST['auth']['application_token'] === 'oyoah52w8odq8lrvqstg72e3javl9918' ) {
-
-
-
-					$metaKey = '_wc_bitrix24_deal_id';
+					$entryType = 'quote';
+//					$metaKey = '_wc_bitrix24_deal_id';
 					$entryID = $_POST['data']['FIELDS']['ID'];
 
 					switch ($_POST['event']) {
 						case 'ONCRMDEALUPDATE':
-							$metaKey = '_wc_bitrix24_deal_id';
+						case 'ONCRMDEALADD':
+//							$metaKey = '_wc_bitrix24_deal_id';
 							$entryType = 'deal';
+							break;
+						case 'ONCRMQUOTEUPDATE':
+						case 'ONCRMQUOTEADD':
+//							$metaKey = '_wc_bitrix24_quote_id';
+							$entryType = 'quote';
 							break;
 						default:
 							// Nothing
 							break;
 					}
 
-					$entry = $this->sendApiRequest('crm.' . 'quote' . '.get', false, ['id' => $entryID], true);
+					$entry = $this->sendApiRequest('crm.' . $entryType . '.get', false, ['id' => $entryID], true);
 
-					ob_start();
-					var_dump($entry);
-					$result = ob_get_clean();
-					error_log('custom bitrix');
-					error_log($result);
 
-					$orders = get_posts(
-						[
-							'post_type' => 'shop_order',
-							'post_status' => 'any',
-							'numberposts' => 1,
-							'meta_query' => [
-								[
-									'key' => $metaKey,
-									'value' => $entryID
-								]
-							],
-							'fields' => 'ids'
-						]
-					);
+					if (empty($entry)) {
+						$this->log('no entry in Bitrix24 by data' . $entryID);
 
-//            var_dump($orders);
+						exit();
+					}
+
+//					ob_start();
+//					var_dump($entry);
+//					$result = ob_get_clean();
+//					error_log('custom bitrix');
+//					error_log($result);
+
+					return $entry;
 
 				}
 
 			}
-
-
-
-
+			return false;
 		}
 
 		public function sendApiRequest($method, $showError = false, $fields = [], $ignoreLog = false)
 		{
 			$webhook = BITRIX_EVENT_WEBHOOK;
-
-
-			if (!$ignoreLog) {
-				//log
-			}
 
 			try {
 				$response = wp_remote_post(
@@ -141,17 +114,13 @@ if ( ! class_exists( 'Property_Builder' ) ) {
 					]
 				);
 
-
-//				var_dump($response);
-				if (!$ignoreLog) {
-				//log
-				}
-
 				if (is_wp_error($response)) {
+					$this->log('exception in sendApiRequest function ' . $response->get_error_message());
 					throw new \Exception(
 						$response->get_error_message(),
 						(int) $response->get_error_code()
 					);
+
 				}
 
 				$body = $response['body'];
@@ -179,9 +148,9 @@ if ( ! class_exists( 'Property_Builder' ) ) {
 					}
 				}
 
-				//log
+				$this->log('bitrix empty response');
 			} catch (\Exception $error) {
-			//log
+					$this->log($error->getCode() . ': ' . $error->getMessage() );
 
 				if ($showError) {
 					printf(
@@ -196,7 +165,18 @@ if ( ! class_exists( 'Property_Builder' ) ) {
 			return [];
 		}
 
+		public  function log($text) {
+			$str         = '';
+			$random_file = fopen( BITRIX_EVENT_PLUGIN_LOG_FILE, "a+" );
+			$str         .= $text;
+			fwrite( $random_file, date( '[Y-m-d H:i:s] ' ) . '---' . $str . "\r\n" );
+			fclose( $random_file );
+		}
+
 	}
+
+
+
 
 
 
