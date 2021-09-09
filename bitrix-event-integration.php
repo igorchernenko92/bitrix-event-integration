@@ -32,7 +32,7 @@ define('BITRIX_EVENT_WEBHOOK', 'https://otdel-marketinga-bb.bitrix24.ru/rest/109
 /**
  * Load plugin.
  */
-if ( ! class_exists( 'Property_Builder' ) ) {
+if ( ! class_exists( 'Bitrix_Event' ) ) {
 
 	class Bitrix_Event {
 
@@ -46,59 +46,130 @@ if ( ! class_exists( 'Property_Builder' ) ) {
 		}
 
 		public function handler() {
+			if (!empty($_POST) || !empty($_POST['auth']) || !empty($_POST['auth']['application_token'])) {
+				if ( $_POST['auth']['application_token'] === 'oyoah52w8odq8lrvqstg72e3javl9918' ) {
 
-			$this->log('testt');
+					$data = $this->getBitrixData();
 
-			$this->get_bitrix_data();
+//					$this->sendDataToDatabase($data);
+
+					 $this->addDealComment($data);
+
+				}
+			}
+		}
+
+		public function sendDataToDatabase($data) {
+//			if ( !$data ) return;
+
+
+
+
+			global $wpdb;
+
+			$mydb = new wpdb('integration','F497Q2o8W53a','integration','mariadb.local');
+
+
+//			ob_start();
+//			var_dump($mydb);
+//			$result = ob_get_clean();
+//
+//			$this->log($result);
+
+
+			$mydb->insert('bitrix_event_data', $data );
+
+
 
 
 		}
 
+		public function bitrixDataAdapter($entryType, $entry) {
+			$data = [
+				'entry_id' => intval($entry['ID']),
+				'entry_type' => $entryType,
+				'entry_status' => $entry['STATUS_ID'],
+				'data' => json_encode($entry) ?? '',
+			];
 
-		public function get_bitrix_data() {
-			if (!empty($_POST) || !empty($_POST['auth']) || !empty($_POST['auth']['application_token'])) {
-				if ( $_POST['auth']['application_token'] === 'oyoah52w8odq8lrvqstg72e3javl9918' ) {
-					$entryType = 'quote';
+			return $data;
+		}
+
+		//TODO: add post as argument
+		public function getBitrixData() {
+			$entryType = 'quote';
 //					$metaKey = '_wc_bitrix24_deal_id';
-					$entryID = $_POST['data']['FIELDS']['ID'];
+			$entryID = $_POST['data']['FIELDS']['ID'];
 
-					switch ($_POST['event']) {
-						case 'ONCRMDEALUPDATE':
-						case 'ONCRMDEALADD':
+			switch ($_POST['event']) {
+				case 'ONCRMDEALUPDATE':
+				case 'ONCRMDEALADD':
 //							$metaKey = '_wc_bitrix24_deal_id';
-							$entryType = 'deal';
-							break;
-						case 'ONCRMQUOTEUPDATE':
-						case 'ONCRMQUOTEADD':
+					$entryType = 'deal';
+					break;
+				case 'ONCRMQUOTEUPDATE':
+				case 'ONCRMQUOTEADD':
 //							$metaKey = '_wc_bitrix24_quote_id';
-							$entryType = 'quote';
-							break;
-						default:
-							// Nothing
-							break;
-					}
+					$entryType = 'quote';
+					break;
+				default:
+					// Nothing
+					break;
+			}
 
 					$entry = $this->sendApiRequest('crm.' . $entryType . '.get', false, ['id' => $entryID], true);
 
 
-					if (empty($entry)) {
-						$this->log('no entry in Bitrix24 by data' . $entryID);
+			if (empty($entry)) {
+				$this->log('no entry in Bitrix24 by data' . $entryID);
 
-						exit();
-					}
-
-//					ob_start();
-//					var_dump($entry);
-//					$result = ob_get_clean();
-//					error_log('custom bitrix');
-//					error_log($result);
-
-					return $entry;
-
-				}
-
+				return false;
 			}
-			return false;
+
+			$adaptedData = $this->bitrixDataAdapter($entryType, $entry);
+
+//			ob_start();
+//			var_dump($this->bitrixDataAdapter($entryType, $entry));
+//			$result = ob_get_clean();
+//
+//			$this->log($result);
+
+			return $adaptedData;
+
+		}
+
+		public function addDealComment($adaptedData) {
+			if ( !$adaptedData ) return;
+			if ( $adaptedData['entry_type'] != 'quote' ) return; //if quote changed then do the comment in the deal
+
+
+			$decodedData = json_decode($adaptedData['data'], true);
+//			ob_start();
+//			var_dump($decodeData['DEAL_ID']);
+//			$result = ob_get_clean();
+//
+//			$this->log($result);
+
+
+			$deal_id = $decodedData['DEAL_ID'];
+			$qoute_id = $adaptedData['entry_id'];
+			$quote_status = $adaptedData['entry_status'];
+
+
+			$comments = $this->sendApiRequest(
+				'crm.timeline.comment.add',
+				false,
+				[
+					'fields' => [
+						'ENTITY_ID' => $deal_id,
+						'ENTITY_TYPE' => 'deal',
+						"COMMENT" => 'ProductID# | Quote#' . $qoute_id . ' | ' . $quote_status
+					]
+				],
+				true
+			);
+
+
 		}
 
 		public function sendApiRequest($method, $showError = false, $fields = [], $ignoreLog = false)
