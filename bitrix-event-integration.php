@@ -1,18 +1,18 @@
 <?php
 /**
-* Plugin Name: Bitrix24 - Event - Integration
-* Plugin URI: ''
-* Description: Allows you to send data to database after bitrix events occurs
-* Version: 1.0.0
-* Author: igorchernenko92
-* Author URI: https://github.com/igorchernenko92
-* License:
-* Text Domain: bitrix-event-integration
-* Domain Path: /languages/
-*/
+ * Plugin Name: Bitrix24 - Event - Integration
+ * Plugin URI: ''
+ * Description: Allows you to send data to database after bitrix events occurs
+ * Version: 1.0.0
+ * Author: igorchernenko92
+ * Author URI: https://github.com/igorchernenko92
+ * License:
+ * Text Domain: bitrix-event-integration
+ * Domain Path: /languages/
+ */
 
 if (!defined('ABSPATH')) {
-    exit();
+	exit();
 }
 
 /*
@@ -22,7 +22,7 @@ require_once ABSPATH . 'wp-admin/includes/plugin.php';
 
 
 if (!defined('BITRIX_EVENT_PLUGIN_LOG_FILE')) {
-	define('BITRIX_EVENT_PLUGIN_LOG_FILE', wp_upload_dir()['basedir'] . '/logs/bitrix_event' . md5(get_option('siteurl')) . '.log');
+	define('BITRIX_EVENT_PLUGIN_LOG_FILE', wp_upload_dir()['basedir'] . '/logs/bitrix_eventoi7778u124' . md5(get_option('siteurl')) . '.log');
 }
 
 define('BITRIX_EVENT_WEBHOOK', 'https://otdel-marketinga-bb.bitrix24.ru/rest/1092/4sb8l1akg2dhl4l1/');
@@ -47,40 +47,45 @@ if ( ! class_exists( 'Bitrix_Event' ) ) {
 
 		public function handler() {
 			if (!empty($_POST) || !empty($_POST['auth']) || !empty($_POST['auth']['application_token'])) {
-				if ( $_POST['auth']['application_token'] === 'oyoah52w8odq8lrvqstg72e3javl9918' ) {
+//				if ( $_POST['auth']['application_token'] === 'gqblsojo4je20gk37bsg9xn5sdlnwag6' ) {
+				if ( $_GET['id'] === 'gqblsojo4je20gk37bsg9x09n5sdlnwag6' ) {
+
+
+//					ob_start();
+//					var_dump($_GET);
+//					var_dump('texttettgg');
+//					var_dump($_POST['document_id'][2]);
+//
+//
+//					$pieces = explode("DEAL_", $_POST['document_id'][2]);
+//					var_dump($pieces[1]);
+////					var_dump($_POST);
+//
+//
+//
+//
+//
+//
+//					$result = ob_get_clean();
+//					$this->log($result);
+
 
 					$data = $this->getBitrixData();
 
-//					$this->sendDataToDatabase($data);
-
-					 $this->addDealComment($data);
-
+					$this->sendDataToDatabase($data);
 				}
+
 			}
 		}
 
 		public function sendDataToDatabase($data) {
 //			if ( !$data ) return;
 
-
-
-
 			global $wpdb;
 
-			$mydb = new wpdb('integration','F497Q2o8W53a','integration','mariadb.local');
-
-
-//			ob_start();
-//			var_dump($mydb);
-//			$result = ob_get_clean();
-//
-//			$this->log($result);
-
+			$mydb = new wpdb('nnjddpvjgv','eepUFyMG6U','nnjddpvjgv','phpstack-664471-2174182.cloudwaysapps.com');
 
 			$mydb->insert('bitrix_event_data', $data );
-
-
-
 
 		}
 
@@ -88,7 +93,8 @@ if ( ! class_exists( 'Bitrix_Event' ) ) {
 			$data = [
 				'entry_id' => intval($entry['ID']),
 				'entry_type' => $entryType,
-				'entry_status' => $entry['STATUS_ID'],
+//				'entry_status' => $entry['STATUS_ID'],
+				'entry_status' => $entry['STAGE_ID'],
 				'data' => json_encode($entry) ?? '',
 			];
 
@@ -97,27 +103,30 @@ if ( ! class_exists( 'Bitrix_Event' ) ) {
 
 		//TODO: add post as argument
 		public function getBitrixData() {
-			$entryType = 'quote';
+			$entryType = 'deal';
 //					$metaKey = '_wc_bitrix24_deal_id';
-			$entryID = $_POST['data']['FIELDS']['ID'];
+//			$entryID = $_POST['data']['FIELDS']['ID'];
 
-			switch ($_POST['event']) {
-				case 'ONCRMDEALUPDATE':
-				case 'ONCRMDEALADD':
-//							$metaKey = '_wc_bitrix24_deal_id';
-					$entryType = 'deal';
-					break;
-				case 'ONCRMQUOTEUPDATE':
-				case 'ONCRMQUOTEADD':
-//							$metaKey = '_wc_bitrix24_quote_id';
-					$entryType = 'quote';
-					break;
-				default:
-					// Nothing
-					break;
-			}
+			$pieces = explode("DEAL_", $_POST['document_id'][2]);
+			$entryID = $pieces[1];
 
-					$entry = $this->sendApiRequest('crm.' . $entryType . '.get', false, ['id' => $entryID], true);
+//			switch ($_POST['event']) {
+//				case 'ONCRMDEALUPDATE':
+//				case 'ONCRMDEALADD':
+////							$metaKey = '_wc_bitrix24_deal_id';
+//					$entryType = 'deal';
+//					break;
+//				case 'ONCRMQUOTEUPDATE':
+//				case 'ONCRMQUOTEADD':
+////							$metaKey = '_wc_bitrix24_quote_id';
+//					$entryType = 'quote';
+//					break;
+//				default:
+//					// Nothing
+//					break;
+//			}
+
+			$entry = $this->sendApiRequest('crm.' . $entryType . '.get', false, ['id' => $entryID], true);
 
 
 			if (empty($entry)) {
@@ -131,44 +140,10 @@ if ( ! class_exists( 'Bitrix_Event' ) ) {
 //			ob_start();
 //			var_dump($this->bitrixDataAdapter($entryType, $entry));
 //			$result = ob_get_clean();
-//
+
 //			$this->log($result);
 
 			return $adaptedData;
-
-		}
-
-		public function addDealComment($adaptedData) {
-			if ( !$adaptedData ) return;
-			if ( $adaptedData['entry_type'] != 'quote' ) return; //if quote changed then do the comment in the deal
-
-
-			$decodedData = json_decode($adaptedData['data'], true);
-//			ob_start();
-//			var_dump($decodeData['DEAL_ID']);
-//			$result = ob_get_clean();
-//
-//			$this->log($result);
-
-
-			$deal_id = $decodedData['DEAL_ID'];
-			$qoute_id = $adaptedData['entry_id'];
-			$quote_status = $adaptedData['entry_status'];
-
-
-			$comments = $this->sendApiRequest(
-				'crm.timeline.comment.add',
-				false,
-				[
-					'fields' => [
-						'ENTITY_ID' => $deal_id,
-						'ENTITY_TYPE' => 'deal',
-						"COMMENT" => 'ProductID# | Quote#' . $qoute_id . ' | ' . $quote_status
-					]
-				],
-				true
-			);
-
 
 		}
 
@@ -221,7 +196,7 @@ if ( ! class_exists( 'Bitrix_Event' ) ) {
 
 				$this->log('bitrix empty response');
 			} catch (\Exception $error) {
-					$this->log($error->getCode() . ': ' . $error->getMessage() );
+				$this->log($error->getCode() . ': ' . $error->getMessage() );
 
 				if ($showError) {
 					printf(
