@@ -1,5 +1,5 @@
 <?php
-//namespace Itgalaxy\Wc\Bitrix24\Integration\Includes;
+namespace Event\Bitrix24\Integration\Includes;
 
 class Helper
 {
@@ -18,6 +18,15 @@ class Helper
 //            // Nothing
 //        }
 //    }
+
+
+	public static function log($text) {
+		$str         = '';
+		$random_file = fopen( "bitrix_integration.log", "a+" );
+		$str         .= $text;
+		fwrite( $random_file, date( '[Y-m-d H:i:s] ' ) . '---' . $str . "\r\n" );
+		fclose( $random_file );
+	}
 
 
 }

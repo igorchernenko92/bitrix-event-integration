@@ -22,7 +22,7 @@ require_once ABSPATH . 'wp-admin/includes/plugin.php';
 
 
 if (!defined('BITRIX_EVENT_PLUGIN_LOG_FILE')) {
-	define('BITRIX_EVENT_PLUGIN_LOG_FILE', wp_upload_dir()['basedir'] . '/logs/bitrix_eventoi7778u124' . md5(get_option('siteurl')) . '.log');
+	define('BITRIX_EVENT_PLUGIN_LOG_FILE', wp_upload_dir()['basedir'] . '/logs/bitrix_event11102021.log');
 }
 
 define('BITRIX_EVENT_WEBHOOK', 'https://otdel-marketinga-bb.bitrix24.ru/rest/1092/4sb8l1akg2dhl4l1/');
@@ -47,32 +47,21 @@ if ( ! class_exists( 'Bitrix_Event' ) ) {
 
 		public function handler() {
 			if (!empty($_POST) || !empty($_POST['auth']) || !empty($_POST['auth']['application_token'])) {
-//				if ( $_POST['auth']['application_token'] === 'gqblsojo4je20gk37bsg9xn5sdlnwag6' ) {
-				if ( $_GET['id'] === 'gqblsojo4je20gk37bsg9x09n5sdlnwag6' ) {
-
+				if ( $_POST['auth']['application_token'] === 'gqblsojo4je20gk37bsg9xn5sdlnwag6' ) {
+//				if ( $_GET['id'] === 'gqblsojo4je20gk37bsg9x09n5sdlnwag6' ) {
+					$data = $this->getBitrixData();
 
 //					ob_start();
-//					var_dump($_GET);
-//					var_dump('texttettgg');
-//					var_dump($_POST['document_id'][2]);
-//
-//
-//					$pieces = explode("DEAL_", $_POST['document_id'][2]);
-//					var_dump($pieces[1]);
-////					var_dump($_POST);
-//
-//
-//
-//
-//
+//					var_dump('tettttttt');
+//					var_dump($data);
 //
 //					$result = ob_get_clean();
 //					$this->log($result);
 
 
-					$data = $this->getBitrixData();
 
-					$this->sendDataToDatabase($data);
+
+//					$this->sendDataToDatabase($data);
 				}
 
 			}
@@ -80,12 +69,18 @@ if ( ! class_exists( 'Bitrix_Event' ) ) {
 
 		public function sendDataToDatabase($data) {
 //			if ( !$data ) return;
-
+			$this->log('111');
 			global $wpdb;
 
 			$mydb = new wpdb('nnjddpvjgv','eepUFyMG6U','nnjddpvjgv','phpstack-664471-2174182.cloudwaysapps.com');
+			ob_start();
+			$mydb->show_errors( true );
 
-			$mydb->insert('bitrix_event_data', $data );
+			var_dump($mydb);
+//			$mydb->insert('bitrix_event_data', $data );
+
+			$result = ob_get_clean();
+			$this->log($result);
 
 		}
 
@@ -105,10 +100,10 @@ if ( ! class_exists( 'Bitrix_Event' ) ) {
 		public function getBitrixData() {
 			$entryType = 'deal';
 //					$metaKey = '_wc_bitrix24_deal_id';
-//			$entryID = $_POST['data']['FIELDS']['ID'];
+			$entryID = $_POST['data']['FIELDS']['ID'];
 
-			$pieces = explode("DEAL_", $_POST['document_id'][2]);
-			$entryID = $pieces[1];
+//			$pieces = explode("DEAL_", $_POST['document_id'][2]);
+//			$entryID = $pieces[1];
 
 //			switch ($_POST['event']) {
 //				case 'ONCRMDEALUPDATE':
