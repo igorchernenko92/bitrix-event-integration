@@ -22,10 +22,10 @@ require_once ABSPATH . 'wp-admin/includes/plugin.php';
 
 
 if (!defined('BITRIX_EVENT_PLUGIN_LOG_FILE')) {
-	define('BITRIX_EVENT_PLUGIN_LOG_FILE', wp_upload_dir()['basedir'] . '/logs/bitrix_event11102021.log');
+	define('BITRIX_EVENT_PLUGIN_LOG_FILE', wp_upload_dir()['basedir'] . '/logs/bitrix_event_new.log');
 }
 
-define('BITRIX_EVENT_WEBHOOK', 'https://otdel-marketinga-bb.bitrix24.ru/rest/1092/4sb8l1akg2dhl4l1/');
+define('BITRIX_EVENT_WEBHOOK', 'https://otdel-marketinga-bb.bitrix24.ru/rest/3616/dqpxa4v0y52f66kp/');
 
 
 
@@ -51,74 +51,62 @@ if ( ! class_exists( 'Bitrix_Event' ) ) {
 				if ( $_POST['token'] === 'qQ!sk!Xinscl(WH)w' ) { //13388 user id
 
 
-
 //					ob_start();
 //					var_dump($_POST);
 //					$result = ob_get_clean();
 //					$this->log($result);
+
+					$this->getBitrixData($_POST['user_id']);
 
 				}
 
 			}
 		}
 
-		public function bitrixDataAdapter($entryType, $entry) {
-			$data = [
-				'entry_id' => intval($entry['ID']),
-				'entry_type' => $entryType,
-//				'entry_status' => $entry['STATUS_ID'],
-				'entry_status' => $entry['STAGE_ID'],
-				'data' => json_encode($entry) ?? '',
-			];
+		public function getBitrixData($user_id) {
 
-			return $data;
-		}
+			$args = array(
+				'meta_query' => array(
+					array(
+						'key' => 'moodle_user_id',
+						'value' => $user_id,
+						'compare' => '='
+					)
+				)
+			);
 
-		//TODO: add post as argument
-		public function getBitrixData() {
-			$entryType = 'deal';
-//					$metaKey = '_wc_bitrix24_deal_id';
-			$entryID = $_POST['data']['FIELDS']['ID'];
+			$users = get_users($args);
 
-//			$pieces = explode("DEAL_", $_POST['document_id'][2]);
-//			$entryID = $pieces[1];
+			$bitrix_contact_id = get_user_meta($users[0]->ID, '_bitrix24_contact_id', true);
 
-//			switch ($_POST['event']) {
-//				case 'ONCRMDEALUPDATE':
-//				case 'ONCRMDEALADD':
-////							$metaKey = '_wc_bitrix24_deal_id';
-//					$entryType = 'deal';
-//					break;
-//				case 'ONCRMQUOTEUPDATE':
-//				case 'ONCRMQUOTEADD':
-////							$metaKey = '_wc_bitrix24_quote_id';
-//					$entryType = 'quote';
-//					break;
-//				default:
-//					// Nothing
-//					break;
-//			}
+			ob_start();
+			var_dump( $user_id . '-' .$bitrix_contact_id);
+			$result = ob_get_clean();
+			$this->log($result);
 
-			$entry = $this->sendApiRequest('crm.' . $entryType . '.get', false, ['id' => $entryID], true);
-
-
-			if (empty($entry)) {
-				$this->log('no entry in Bitrix24 by data' . $entryID);
-
-				return false;
+			if ( $bitrix_contact_id ) {
+					$this->sendApiRequest(
+					'crm.contact.update',
+					true,
+					[
+						'id' => 19372,
+						'fields' => [
+							'UF_CRM_1633717424148' => date('Y-m-d H:i:s')
+						]
+					]
+				);
 			}
-
-			$adaptedData = $this->bitrixDataAdapter($entryType, $entry);
-
-//			ob_start();
-//			var_dump($this->bitrixDataAdapter($entryType, $entry));
-//			$result = ob_get_clean();
-
-//			$this->log($result);
-
-			return $adaptedData;
-
 		}
+
+		public  function log($text) {
+			$str         = '';
+			$random_file = fopen( BITRIX_EVENT_PLUGIN_LOG_FILE, "a+" );
+			$str         .= $text;
+			fwrite( $random_file, date( '[Y-m-d H:i:s] ' ) . '---' . $str . "\r\n" );
+			fclose( $random_file );
+		}
+
+
 
 		public function sendApiRequest($method, $showError = false, $fields = [], $ignoreLog = false)
 		{
@@ -183,15 +171,6 @@ if ( ! class_exists( 'Bitrix_Event' ) ) {
 
 			return [];
 		}
-
-		public  function log($text) {
-			$str         = '';
-			$random_file = fopen( BITRIX_EVENT_PLUGIN_LOG_FILE, "a+" );
-			$str         .= $text;
-			fwrite( $random_file, date( '[Y-m-d H:i:s] ' ) . '---' . $str . "\r\n" );
-			fclose( $random_file );
-		}
-
 	}
 
 	$instance = new Bitrix_Event();
