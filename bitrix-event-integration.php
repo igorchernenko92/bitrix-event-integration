@@ -22,7 +22,7 @@ require_once ABSPATH . 'wp-admin/includes/plugin.php';
 
 
 if (!defined('BITRIX_EVENT_PLUGIN_LOG_FILE')) {
-	define('BITRIX_EVENT_PLUGIN_LOG_FILE', wp_upload_dir()['basedir'] . '/logs/bitrix_event_new.log');
+	define('BITRIX_EVENT_PLUGIN_LOG_FILE', wp_upload_dir()['basedir'] . '/logs/bitrix_event_new3.log');
 }
 
 define('BITRIX_EVENT_WEBHOOK', 'https://otdel-marketinga-bb.bitrix24.ru/rest/3616/dqpxa4v0y52f66kp/');
@@ -45,25 +45,30 @@ if ( ! class_exists( 'Bitrix_Event' ) ) {
 			add_action('init', [$this, 'handler'], PHP_INT_MAX);
 		}
 
-		public function handler() {
-
+		public function handler() { //get data from moodle plugin by post method
 			if ( !empty($_POST) || !empty($_POST['token']) ) {
-				if ( $_POST['token'] === 'qQ!sk!Xinscl(WH)w' ) { //13388 user id
+				$moodle_user_id = sanitize_text_field($_POST['user_id']);
+				$moodle_token = sanitize_text_field($_POST['token']);
 
+
+				if ( $moodle_token === 'qQ!sk!Xinscl(WH)w' ) {
 
 //					ob_start();
 //					var_dump($_POST);
 //					$result = ob_get_clean();
 //					$this->log($result);
 
-					$this->getBitrixData($_POST['user_id']);
+					$this->getBitrixData($moodle_user_id);
 
 				}
 
 			}
 		}
 
-		public function getBitrixData($user_id) {
+		public function getBitrixData($user_id) { //get bitrix data from
+			if ( $user_id === 0 ) {
+				return;
+			}
 
 			$args = array(
 				'meta_query' => array(
@@ -79,19 +84,22 @@ if ( ! class_exists( 'Bitrix_Event' ) ) {
 
 			$bitrix_contact_id = get_user_meta($users[0]->ID, '_bitrix24_contact_id', true);
 
+
+
+
 			ob_start();
 			var_dump( $user_id . '-' .$bitrix_contact_id);
 			$result = ob_get_clean();
 			$this->log($result);
 
 			if ( $bitrix_contact_id ) {
-					$this->sendApiRequest(
+				$this->sendApiRequest(
 					'crm.contact.update',
 					true,
 					[
-						'id' => 19372,
+						'id' => $bitrix_contact_id,
 						'fields' => [
-							'UF_CRM_1633717424148' => date('Y-m-d H:i:s')
+							'UF_CRM_1633717424148' => date('Y-m-d H:i:s') //moodle_user_login id in bitrix
 						]
 					]
 				);
@@ -105,8 +113,6 @@ if ( ! class_exists( 'Bitrix_Event' ) ) {
 			fwrite( $random_file, date( '[Y-m-d H:i:s] ' ) . '---' . $str . "\r\n" );
 			fclose( $random_file );
 		}
-
-
 
 		public function sendApiRequest($method, $showError = false, $fields = [], $ignoreLog = false)
 		{
